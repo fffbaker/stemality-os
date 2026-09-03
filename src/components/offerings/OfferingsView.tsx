@@ -314,7 +314,7 @@ export const OfferingsView: React.FC = () => {
       </div>
 
       {/* Offerings Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6 w-full">
         {filteredOfferings.map(offering => {
           const capacityPercent = Math.min(100, Math.round((offering.enrolledCount / offering.capacity) * 100));
           const spotsLeft = offering.capacity - offering.enrolledCount;

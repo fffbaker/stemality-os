@@ -49,7 +49,7 @@ const MainLayout: React.FC = () => {
       <div className="flex-1 flex flex-col min-w-0">
         <Header onOpenQuickLeadModal={() => setShowQuickLeadModal(true)} />
 
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto">
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 w-full min-w-0">
           {currentTab === 'dashboard' && <DashboardView />}
           {currentTab === 'offerings' && <OfferingsView />}
           {currentTab === 'billing' && <BillingManagerView />}

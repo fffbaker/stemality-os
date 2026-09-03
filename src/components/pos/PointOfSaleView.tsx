@@ -329,7 +329,7 @@ export const PointOfSaleView: React.FC = () => {
           </div>
 
           {/* Products Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 w-full">
             {filteredProducts.map(product => (
               <div 
                 key={product.id}
