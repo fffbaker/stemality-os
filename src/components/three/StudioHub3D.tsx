@@ -28,10 +28,16 @@ export const StudioHub3D: React.FC<StudioHub3DProps> = ({
     camera.position.set(0, 15, 32);
     camera.lookAt(0, 0, 0);
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    renderer.setSize(width, height);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    currentMount.appendChild(renderer.domElement);
+    let renderer: THREE.WebGLRenderer;
+    try {
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      renderer.setSize(width, height);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      currentMount.appendChild(renderer.domElement);
+    } catch (e) {
+      console.warn('WebGL initialization failed, displaying 2D telemetry HUD fallback:', e);
+      return;
+    }
 
     // Lights
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
@@ -195,10 +201,10 @@ export const StudioHub3D: React.FC<StudioHub3DProps> = ({
       cancelAnimationFrame(animationFrameId);
       currentMount.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('resize', handleResize);
-      if (currentMount.contains(renderer.domElement)) {
+      if (renderer && currentMount.contains(renderer.domElement)) {
         currentMount.removeChild(renderer.domElement);
       }
-      renderer.dispose();
+      renderer?.dispose();
       coreGeo.dispose();
       coreMat.dispose();
       innerGeo.dispose();

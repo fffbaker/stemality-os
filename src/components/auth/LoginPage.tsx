@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 
 export const LoginPage: React.FC = () => {
-  const { login, currentTheme, setTheme } = useApp();
+  const { login, currentTheme, setTheme, resetToDemoData } = useApp();
 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -32,19 +32,28 @@ export const LoginPage: React.FC = () => {
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage('');
-    if (!username.trim() || !password.trim()) {
+    const trimmedUser = username.trim();
+    const trimmedPass = password.trim();
+
+    if (!trimmedUser || !trimmedPass) {
       setErrorMessage('Please enter both your username and password.');
       return;
     }
 
     setIsSubmitting(true);
     setTimeout(() => {
-      const result = login(username, password);
-      if (!result.success) {
-        setErrorMessage(result.message || 'Login failed.');
+      try {
+        const result = login(trimmedUser, trimmedPass);
+        if (!result.success) {
+          setErrorMessage(result.message || 'Login failed.');
+          setIsSubmitting(false);
+        }
+      } catch (err) {
+        console.error('Login error:', err);
+        setErrorMessage('An unexpected authentication error occurred.');
         setIsSubmitting(false);
       }
-    }, 400);
+    }, 200);
   };
 
   const handleQuickLogin = (adminUser: string, pass: string, theme: AestheticThemeId) => {
@@ -54,8 +63,18 @@ export const LoginPage: React.FC = () => {
     setErrorMessage('');
     setIsSubmitting(true);
     setTimeout(() => {
-      login(adminUser, pass);
-    }, 350);
+      try {
+        const result = login(adminUser, pass);
+        if (!result.success) {
+          setErrorMessage(result.message || 'Quick login failed.');
+          setIsSubmitting(false);
+        }
+      } catch (err) {
+        console.error('Quick login error:', err);
+        setErrorMessage('An unexpected authentication error occurred.');
+        setIsSubmitting(false);
+      }
+    }, 200);
   };
 
   const quickAdminAccounts: {
@@ -311,11 +330,23 @@ export const LoginPage: React.FC = () => {
       <footer className="max-w-6xl w-full mx-auto py-2 flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] text-slate-500 border-t border-slate-800/60 pt-4">
         <div>STEMALITY Operating System • Proprietary Academy Platform</div>
         <div className="flex items-center gap-4">
+          <button
+            type="button"
+            onClick={() => {
+              if (window.confirm('Reset local demo data and restore initial admin accounts?')) {
+                resetToDemoData();
+                setErrorMessage('');
+                setIsSubmitting(false);
+              }
+            }}
+            className="text-slate-400 hover:text-emerald-400 transition-colors underline decoration-slate-600 hover:decoration-emerald-400"
+          >
+            Restore Default Demo Accounts
+          </button>
+          <span>•</span>
           <span>Version 2.4.0</span>
           <span>•</span>
           <span>10 Aesthetic Themes Engine</span>
-          <span>•</span>
-          <span>Multi-Admin Role Governance</span>
         </div>
       </footer>
     </div>

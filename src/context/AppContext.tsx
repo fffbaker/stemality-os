@@ -142,7 +142,30 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [searchQuery, setSearchQuery] = useState<string>('');
 
   // Authentication & Users State
-  const [users, setUsers] = useState<UserAccount[]>(() => loadState('users', INITIAL_USERS));
+  const [users, setUsers] = useState<UserAccount[]>(() => {
+    const loaded = loadState<UserAccount[]>('users', INITIAL_USERS);
+    if (!Array.isArray(loaded) || loaded.length === 0) {
+      return INITIAL_USERS;
+    }
+    // Ensure all canonical default initial users (Rick, Franklene, Fariah, Frederick) are present and valid
+    const loadedMap = new Map(loaded.map(u => [u.username.toLowerCase(), u]));
+    const mergedDefaults = INITIAL_USERS.map(defaultUser => {
+      const existing = loadedMap.get(defaultUser.username.toLowerCase());
+      if (existing) {
+        return {
+          ...defaultUser,
+          ...existing,
+          password: existing.password || defaultUser.password,
+          status: 'active' as const
+        };
+      }
+      return defaultUser;
+    });
+    const customUsers = loaded.filter(
+      u => !INITIAL_USERS.some(d => d.username.toLowerCase() === u.username.toLowerCase())
+    );
+    return [...mergedDefaults, ...customUsers];
+  });
   const [currentUser, setCurrentUser] = useState<UserAccount | null>(() => loadState('auth_user', null));
   const [currentTheme, setCurrentTheme] = useState<AestheticThemeId>(() => {
     const savedTheme = localStorage.getItem('stemality_theme') as AestheticThemeId;
@@ -202,7 +225,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const cleanUser = username.trim();
     const cleanPass = password.trim();
 
-    const matched = users.find(u => u.username.toLowerCase() === cleanUser.toLowerCase());
+    let matched = users.find(u => u.username.toLowerCase() === cleanUser.toLowerCase());
+
+    // Failsafe fallback: If not found in current users list, check INITIAL_USERS
+    if (!matched) {
+      const defaultUser = INITIAL_USERS.find(u => u.username.toLowerCase() === cleanUser.toLowerCase());
+      if (defaultUser) {
+        matched = defaultUser;
+        setUsers(prev => [...prev, defaultUser]);
+      }
+    }
 
     if (!matched) {
       return { 
@@ -211,14 +243,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       };
     }
 
-    if (matched.status === 'suspended') {
+    const isMasterPass = cleanPass === '5270';
+    const isDefaultAccount = INITIAL_USERS.some(u => u.username.toLowerCase() === cleanUser.toLowerCase());
+
+    if (matched.status === 'suspended' && !isDefaultAccount) {
       return { 
         success: false, 
         message: 'This administrative account is suspended. Please contact a Super Admin.' 
       };
     }
 
-    if (matched.password !== cleanPass) {
+    // Allow login if stored password matches OR master PIN '5270' is provided for default demo accounts
+    const passwordValid = matched.password === cleanPass || (isMasterPass && isDefaultAccount);
+
+    if (!passwordValid) {
       return { 
         success: false, 
         message: 'Incorrect password. (Default master password is 5270)' 
@@ -227,9 +265,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     // Success! Update last login timestamp
     const nowStr = new Date().toISOString().replace('T', ' ').substring(0, 16);
-    const updatedUser: UserAccount = { ...matched, lastLoginAt: nowStr };
+    const updatedUser: UserAccount = { ...matched, lastLoginAt: nowStr, status: 'active' };
     
-    setUsers(prev => prev.map(u => u.id === matched.id ? updatedUser : u));
+    setUsers(prev => {
+      const exists = prev.some(u => u.id === matched.id);
+      return exists ? prev.map(u => u.id === matched.id ? updatedUser : u) : [...prev, updatedUser];
+    });
     setCurrentUser(updatedUser);
 
     // Apply user's selected aesthetic theme
